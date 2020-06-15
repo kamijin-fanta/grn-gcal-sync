@@ -18,7 +18,7 @@ type GcalClient struct {
 	service *calendar.Service
 }
 
-func NewGcalClientInteractive() (*GcalClient, error) {
+func NewGcalClient(interactive bool, tokenPath string) (*GcalClient, error) {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -31,7 +31,7 @@ func NewGcalClientInteractive() (*GcalClient, error) {
 	}
 	// read write access
 	config.Scopes = append(config.Scopes, "https://www.googleapis.com/auth/calendar.events")
-	client := getClient(config)
+	client := getClient(config, interactive, tokenPath)
 
 	srv, err := calendar.New(client)
 	if err != nil {
@@ -70,15 +70,18 @@ func (g *GcalClient) getEvents(start, end time.Time, calId string) (*calendar.Ev
 func (g *GcalClient) todo() {}
 
 // Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
+func getClient(config *oauth2.Config, interactive bool, tokenPath string) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
-	tokFile := "data/token.json"
-	tok, err := tokenFromFile(tokFile)
+	tok, err := tokenFromFile(tokenPath)
 	if err != nil {
-		tok = getTokenFromWeb(config)
-		saveToken(tokFile, tok)
+		if interactive {
+			tok = getTokenFromWeb(config)
+			saveToken(tokenPath, tok)
+		} else {
+			panic(fmt.Errorf("not found token %w", err))
+		}
 	}
 	return config.Client(context.Background(), tok)
 }

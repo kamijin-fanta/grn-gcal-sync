@@ -48,9 +48,19 @@ func main() {
 			EnvVars: []string{"GAROON_SUBDOMAIN"},
 		},
 		&cli.StringFlag{
+			Name:    "gcal-token-path",
+			Usage:   "google calendear oauth token file",
+			Value:   "data/token.json",
+			EnvVars: []string{"GCAL_TOKEN_PATH"},
+		},
+		&cli.StringFlag{
 			Name:    "gcal-id",
 			Usage:   "target calendar id",
 			EnvVars: []string{"GCAL_ID"},
+		},
+		&cli.BoolFlag{
+			Name:  "no-interactive",
+			Usage: "target calendar id",
 		},
 	}
 
@@ -82,7 +92,7 @@ func main() {
 				}
 
 				grn := NewGrnClient(client)
-				gcal, err := NewGcalClientInteractive()
+				gcal, err := NewGcalClient(!c.Bool("no-interactive"), c.String("gcal-token-path"))
 				if err != nil {
 					panic(err)
 				}
