@@ -4,7 +4,8 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go ./
+COPY *.go ./
+COPY credentials.json ./
 RUN CGO_ENABLED=0 go build -o grn-gcal-sync .
 
 
