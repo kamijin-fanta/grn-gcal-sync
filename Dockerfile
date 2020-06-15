@@ -5,7 +5,6 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY *.go ./
-COPY credentials.json ./
 RUN CGO_ENABLED=0 go build -o grn-gcal-sync .
 
 
@@ -16,5 +15,6 @@ ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 ENV SSL_CERT_DIR=/etc/ssl/certs
 
 COPY --from=builder /app/grn-gcal-sync /grn-gcal-sync
+COPY credentials.json ./
 RUN mkdir /gen_configs
 CMD ["/grn-gcal-sync"]
