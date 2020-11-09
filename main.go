@@ -27,6 +27,11 @@ func main() {
 			Required: true,
 		},
 		&cli.StringFlag{
+			Name:    "grn-user-id",
+			Usage:   "garoon target[ user id",
+			EnvVars: []string{"GAROON_USER_ID"},
+		},
+		&cli.StringFlag{
 			Name:     "grn-pass",
 			Usage:    "garoon login password",
 			EnvVars:  []string{"GAROON_PASS"},
@@ -111,7 +116,7 @@ func main() {
 				//	panic(err)
 				//}
 
-				grnEvents, err := grn.EventsByUser(start, end, "661")
+				grnEvents, err := grn.EventsByUser(start, end, c.String("grn-user-id"))
 				if err != nil {
 					panic(err)
 				}
