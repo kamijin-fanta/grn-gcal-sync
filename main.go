@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/joho/godotenv"
 	"github.com/otoyo/garoon"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/api/calendar/v3"
-	"os"
-	"regexp"
-	"strings"
-	"time"
 )
 
 func main() {
@@ -73,8 +74,7 @@ func main() {
 		{
 			Name:  "sync",
 			Usage: "sync",
-			Flags: []cli.Flag{
-			},
+			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
 				grnUrl := c.String("grn-url")
 				var client *garoon.Client
