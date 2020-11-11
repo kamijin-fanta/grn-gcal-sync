@@ -29,7 +29,7 @@ func main() {
 		},
 		&cli.StringFlag{
 			Name:    "grn-user-id",
-			Usage:   "garoon target[ user id",
+			Usage:   "garoon target user id",
 			EnvVars: []string{"GAROON_USER_ID"},
 		},
 		&cli.StringFlag{
