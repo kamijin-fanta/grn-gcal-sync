@@ -2,16 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/joho/godotenv"
 	"github.com/otoyo/garoon"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/api/calendar/v3"
-	"os"
-	"regexp"
-	"strings"
-	"time"
 )
 
 func main() {
@@ -25,6 +26,11 @@ func main() {
 			Usage:    "garoon login user name.",
 			EnvVars:  []string{"GAROON_USER"},
 			Required: true,
+		},
+		&cli.StringFlag{
+			Name:    "grn-user-id",
+			Usage:   "garoon target user id",
+			EnvVars: []string{"GAROON_USER_ID"},
 		},
 		&cli.StringFlag{
 			Name:     "grn-pass",
@@ -68,8 +74,7 @@ func main() {
 		{
 			Name:  "sync",
 			Usage: "sync",
-			Flags: []cli.Flag{
-			},
+			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
 				grnUrl := c.String("grn-url")
 				var client *garoon.Client
@@ -111,7 +116,7 @@ func main() {
 				//	panic(err)
 				//}
 
-				grnEvents, err := grn.EventsByUser(start, end, "661")
+				grnEvents, err := grn.EventsByUser(start, end, c.String("grn-user-id"))
 				if err != nil {
 					panic(err)
 				}
