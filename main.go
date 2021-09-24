@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -191,8 +192,25 @@ func main() {
 						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence"))
 						if diff != "" {
 							fmt.Printf("Update event %s\n%s\n\n", srcEvent.Subject, diff)
-							_, err := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
-							if err != nil {
+							maxRetries := 5
+							retries := 0
+							var lasterr error
+							for {
+								_, lasterr := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
+								if lasterr != nil {
+									if retries > maxRetries {
+										break
+									}
+
+									waitTime := (2 << retries) + rand.Intn(1000)/1000
+									time.Sleep(time.Duration(waitTime) * time.Second)
+
+									retries++
+									continue
+								}
+								break
+							}
+							if lasterr != nil {
 								panic(err)
 							}
 						} else {

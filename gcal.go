@@ -60,7 +60,7 @@ func (g *GcalClient) getEvents(start, end time.Time, calId string) (*calendar.Ev
 		SingleEvents(true).
 		TimeMin(startStr).
 		TimeMax(endStr).
-		MaxResults(9999).
+		MaxResults(2500).
 		OrderBy("startTime").Do()
 	if err != nil {
 		return nil, err
