@@ -198,10 +198,10 @@ func main() {
 							for {
 								_, lasterr := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
 								if lasterr != nil {
-									if retries > maxRetries {
+									if retries >= maxRetries {
 										break
 									}
-
+									fmt.Printf("Error in gcal.service.Events.Update:%v. retrying %d/%d\n", lasterr, retries, maxRetries)
 									waitTime := (2 << retries) + rand.Intn(1000)/1000
 									time.Sleep(time.Duration(waitTime) * time.Second)
 
