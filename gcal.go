@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/calendar/v3"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/calendar/v3"
 )
 
 type GcalClient struct {
@@ -59,7 +60,7 @@ func (g *GcalClient) getEvents(start, end time.Time, calId string) (*calendar.Ev
 		SingleEvents(true).
 		TimeMin(startStr).
 		TimeMax(endStr).
-		MaxResults(1000).
+		MaxResults(2500).
 		OrderBy("startTime").Do()
 	if err != nil {
 		return nil, err

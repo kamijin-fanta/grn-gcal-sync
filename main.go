@@ -191,9 +191,25 @@ func main() {
 						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence"))
 						if diff != "" {
 							fmt.Printf("Update event %s\n%s\n\n", srcEvent.Subject, diff)
-							_, err := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
-							if err != nil {
-								panic(err)
+							maxRetries := 5
+							retries := 0
+							var lasterr error
+							for {
+								_, lasterr := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
+								if lasterr != nil {
+									if retries >= maxRetries {
+										break
+									}
+									fmt.Printf("Error in gcal.service.Events.Update:%v. retrying %d/%d\n", lasterr, retries, maxRetries)
+									time.Sleep(time.Duration(2<<retries) * time.Second)
+
+									retries++
+									continue
+								}
+								break
+							}
+							if lasterr != nil {
+								panic(lasterr)
 							}
 						} else {
 							fmt.Printf("Ignore event %s\n", srcEvent.Subject)
