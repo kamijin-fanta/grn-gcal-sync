@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"regexp"
 	"strings"
@@ -202,8 +201,7 @@ func main() {
 										break
 									}
 									fmt.Printf("Error in gcal.service.Events.Update:%v. retrying %d/%d\n", lasterr, retries, maxRetries)
-									waitTime := (2 << retries) + rand.Intn(1000)/1000
-									time.Sleep(time.Duration(waitTime) * time.Second)
+									time.Sleep(time.Duration(2<<retries) * time.Second)
 
 									retries++
 									continue
@@ -211,7 +209,7 @@ func main() {
 								break
 							}
 							if lasterr != nil {
-								panic(lsaterr)
+								panic(lasterr)
 							}
 						} else {
 							fmt.Printf("Ignore event %s\n", srcEvent.Subject)
