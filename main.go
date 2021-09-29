@@ -211,7 +211,7 @@ func main() {
 								break
 							}
 							if lasterr != nil {
-								panic(err)
+								panic(lsaterr)
 							}
 						} else {
 							fmt.Printf("Ignore event %s\n", srcEvent.Subject)
