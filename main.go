@@ -141,7 +141,7 @@ func main() {
 
 					var foundGcalEvent *calendar.Event
 					for _, dstEvent := range remainGcalEvent {
-						if findSyncId(dstEvent.Description) == formatSyncId(srcEvent.ID) {
+						if findSyncId(dstEvent.Description) == formatSyncId(srcEvent.ID, srcEvent.RepeatID) {
 							foundGcalEvent = dstEvent
 							delete(remainGcalEvent, dstEvent.Id)
 							break
@@ -169,7 +169,7 @@ func main() {
 							break
 						}
 					}
-					syncId := formatSyncId(srcEvent.ID)
+					syncId := formatSyncId(srcEvent.ID, srcEvent.RepeatID)
 					description := fmt.Sprintf("%s\n%s\n\n----------\n%s\n----------\n%s", url, attendees, srcEvent.Notes, syncId)
 
 					exceptEvent := &calendar.Event{
@@ -245,8 +245,12 @@ func findSyncId(description string) string {
 	return ""
 }
 
-func formatSyncId(grnId int64) string {
-	return fmt.Sprintf("sync-id=%d", grnId)
+func formatSyncId(grnId int64, repeatId string) string {
+	if repeatId == "" {
+		return fmt.Sprintf("sync-id=%d", grnId)
+	} else {
+		return fmt.Sprintf("sync-id=%d/%s", grnId, repeatId)
+	}
 }
 
 func isIgnoreTitle(title string) bool {
