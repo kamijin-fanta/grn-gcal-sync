@@ -188,7 +188,7 @@ func main() {
 						}
 					} else {
 						// update events
-						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence"))
+						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence", "Start.TimeZone", "End.TimeZone"))
 						if diff != "" {
 							fmt.Printf("Update event %s\n%s\n\n", srcEvent.Subject, diff)
 							maxRetries := 5
