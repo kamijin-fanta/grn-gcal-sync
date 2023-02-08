@@ -64,6 +64,12 @@ func main() {
 			Usage:   "target calendar id",
 			EnvVars: []string{"GCAL_ID"},
 		},
+		&cli.StringFlag{
+			Name:    "gcal-auth-loopback-port",
+			Usage:   "port used for loopback IP address flow",
+			Value:   "31080",
+			EnvVars: []string{"GCAL_AUTH_LOOPBACK_PORT"},
+		},
 		&cli.BoolFlag{
 			Name:  "no-interactive",
 			Usage: "target calendar id",
@@ -97,7 +103,7 @@ func main() {
 				}
 
 				grn := NewGrnClient(client)
-				gcal, err := NewGcalClient(!c.Bool("no-interactive"), c.String("gcal-token-path"))
+				gcal, err := NewGcalClient(!c.Bool("no-interactive"), c.String("gcal-token-path"), c.String("gcal-auth-loopback-port"))
 				if err != nil {
 					panic(err)
 				}
