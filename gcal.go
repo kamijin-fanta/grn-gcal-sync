@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,11 +16,13 @@ import (
 	"google.golang.org/api/calendar/v3"
 )
 
+const authTimeout = 3 * time.Minute
+
 type GcalClient struct {
 	service *calendar.Service
 }
 
-func NewGcalClient(interactive bool, tokenPath string) (*GcalClient, error) {
+func NewGcalClient(interactive bool, tokenPath string, loopbackPort string) (*GcalClient, error) {
 	b, err := ioutil.ReadFile("credentials.json")
 	if err != nil {
 		log.Fatalf("Unable to read client secret file: %v", err)
@@ -32,7 +35,7 @@ func NewGcalClient(interactive bool, tokenPath string) (*GcalClient, error) {
 	}
 	// read write access
 	config.Scopes = append(config.Scopes, "https://www.googleapis.com/auth/calendar.events")
-	client := getClient(config, interactive, tokenPath)
+	client := getClient(config, interactive, tokenPath, loopbackPort)
 
 	srv, err := calendar.New(client)
 	if err != nil {
@@ -71,14 +74,14 @@ func (g *GcalClient) getEvents(start, end time.Time, calId string) (*calendar.Ev
 func (g *GcalClient) todo() {}
 
 // Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config, interactive bool, tokenPath string) *http.Client {
+func getClient(config *oauth2.Config, interactive bool, tokenPath string, loopbackPort string) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
 	tok, err := tokenFromFile(tokenPath)
 	if err != nil {
 		if interactive {
-			tok = getTokenFromWeb(config)
+			tok = getTokenFromWeb(config, loopbackPort)
 			saveToken(tokenPath, tok)
 		} else {
 			panic(fmt.Errorf("not found token %w", err))
@@ -88,13 +91,13 @@ func getClient(config *oauth2.Config, interactive bool, tokenPath string) *http.
 }
 
 // Request a token from the web, then returns the retrieved token.
-func getTokenFromWeb(config *oauth2.Config) *oauth2.Token {
+func getTokenFromWeb(config *oauth2.Config, loopbackPort string) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser then type the "+
 		"authorization code: \n%v\n", authURL)
 
-	var authCode string
-	if _, err := fmt.Scan(&authCode); err != nil {
+	authCode, err := waitLoopbackRequest(config, loopbackPort, authTimeout)
+	if err != nil {
 		log.Fatalf("Unable to read authorization code: %v", err)
 	}
 
@@ -126,4 +129,39 @@ func saveToken(path string, token *oauth2.Token) {
 	}
 	defer f.Close()
 	json.NewEncoder(f).Encode(token)
+}
+
+func waitLoopbackRequest(config *oauth2.Config, loopbackPort string, timeout time.Duration) (authCode string, e error) {
+	m := http.NewServeMux()
+	s := http.Server{Addr: ":" + loopbackPort, Handler: m}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+
+	m.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		code, ok := r.URL.Query()["code"]
+		if !ok {
+			return
+		}
+
+		authCode = code[0]
+		cancel()
+	})
+
+	// log.Println("Starting loopback listener with " + s.Addr)
+	go func() {
+		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			e = ctx.Err()
+		}
+		s.Shutdown(ctx)
+	}
+
+	// log.Println("Loopback listener closed")
+	return
 }
