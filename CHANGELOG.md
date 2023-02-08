@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/kamijin-fanta/grn-gcal-sync/compare/v1.3.0...v1.4.0) (2023-02-08)
+
+
+### Features
+
+* migrate loopback ip address flow ([07fe012](https://github.com/kamijin-fanta/grn-gcal-sync/commit/07fe0128eb9ef9ddb556dcc0873ccbef8ba4702a))
+
+
+### Bug Fixes
+
+* remove OOB redirect flow ([c447f0d](https://github.com/kamijin-fanta/grn-gcal-sync/commit/c447f0d4fd4bc2e481bfe574dbbe9874f841b40e))
+
 ## [1.3.0](https://github.com/kamijin-fanta/grn-gcal-sync/compare/v1.2.0...v1.3.0) (2023-02-03)
 
 
