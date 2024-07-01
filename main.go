@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -10,8 +13,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/joho/godotenv"
-	"github.com/otoyo/garoon"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 )
 
@@ -22,26 +25,9 @@ func main() {
 	app.Name = "grn-gcal-sync"
 	app.Flags = []cli.Flag{
 		&cli.StringFlag{
-			Name:     "grn-user",
-			Usage:    "garoon login user name.",
-			EnvVars:  []string{"GAROON_USER"},
-			Required: true,
-		},
-		&cli.StringFlag{
 			Name:    "grn-user-id",
 			Usage:   "garoon target user id",
 			EnvVars: []string{"GAROON_USER_ID"},
-		},
-		&cli.StringFlag{
-			Name:     "grn-pass",
-			Usage:    "garoon login password",
-			EnvVars:  []string{"GAROON_PASS"},
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:    "grn-url",
-			Usage:   "garoon package version login url",
-			EnvVars: []string{"GAROON_URL"},
 		},
 		&cli.StringFlag{
 			Name:    "grn-link-base",
@@ -70,6 +56,39 @@ func main() {
 			Value:   "31080",
 			EnvVars: []string{"GCAL_AUTH_LOOPBACK_PORT"},
 		},
+
+		&cli.StringFlag{
+			Name:    "garoon-token-path",
+			Usage:   "garoon oauth token file",
+			Value:   "data/tokengrn.json",
+			EnvVars: []string{"GAROON_TOKEN_PATH"},
+		},
+		&cli.StringFlag{
+			Name:    "garoon-oauth2-client-id",
+			Usage:   "garoon oauth2 client",
+			EnvVars: []string{"GAROON_OAUTH2_CLIENT_ID"},
+		},
+		&cli.StringFlag{
+			Name:    "garoon-oauth2-client-secret",
+			Usage:   "garoon oauth2 client",
+			EnvVars: []string{"GAROON_OAUTH2_CLIENT_SECRET"},
+		},
+		&cli.StringFlag{
+			Name:    "garoon-oauth2-client-authorization",
+			Usage:   "garoon oauth2 client",
+			EnvVars: []string{"GAROON_OAUTH2_CLIENT_AUTHORIZATION"},
+		},
+		&cli.StringFlag{
+			Name:    "garoon-oauth2-client-token",
+			Usage:   "garoon oauth2 client",
+			EnvVars: []string{"GAROON_OAUTH2_CLIENT_TOKEN"},
+		},
+		&cli.StringFlag{
+			Name:    "garoon-oauth2-callback",
+			Usage:   "garoon oauth2 callback uri",
+			EnvVars: []string{"GAROON_OAUTH2_CALLBACK"},
+		},
+
 		&cli.BoolFlag{
 			Name:  "no-interactive",
 			Usage: "target calendar id",
@@ -82,27 +101,58 @@ func main() {
 			Usage: "sync",
 			Flags: []cli.Flag{},
 			Action: func(c *cli.Context) error {
-				grnUrl := c.String("grn-url")
-				var client *garoon.Client
-				var err error
-				if grnUrl != "" {
-					client, err = garoon.NewClientWithBaseUrl(
-						grnUrl,
-						c.String("grn-user"),
-						c.String("grn-pass"),
-					)
+				garoonOauth2Config := oauth2.Config{
+					ClientID:     c.String("garoon-oauth2-client-id"),
+					ClientSecret: c.String("garoon-oauth2-client-secret"),
+					Endpoint: oauth2.Endpoint{
+						AuthURL:  c.String("garoon-oauth2-client-authorization"),
+						TokenURL: c.String("garoon-oauth2-client-token"),
+					},
+					RedirectURL: c.String("garoon-oauth2-callback"),
+					Scopes:      []string{"g:schedule:read"},
+				}
+				authenticator := &Oauth2LocalAuthenticator{
+					config: garoonOauth2Config,
+				}
+				ctx := context.Background()
+				log.Printf("oauth2 start %v", authenticator)
+
+				var token *oauth2.Token
+				tokenPath := c.String("garoon-token-path")
+				if buff, err := os.ReadFile(tokenPath); err == nil {
+					t := oauth2.Token{}
+					err := json.Unmarshal(buff, &t)
 					if err != nil {
 						panic(err)
 					}
-				} else {
-					client, err = garoon.NewClient(
-						c.String("grn-subdomain"),
-						c.String("grn-user"),
-						c.String("grn-pass"),
-					)
+					token = &t
 				}
 
-				grn := NewGrnClient(client)
+				if token == nil {
+					if c.Bool("no-interactive") {
+						return fmt.Errorf("inlivad accesskey for garoon")
+					}
+					resToken, errr := authenticator.Start(ctx)
+					if errr != nil {
+						return errr
+					}
+					jsonbuff, err := json.Marshal(resToken)
+					if err != nil {
+						panic(err)
+					}
+					err = os.WriteFile(tokenPath, jsonbuff, os.ModePerm)
+					if err != nil {
+						panic(err)
+					}
+
+					token = resToken
+				}
+
+				tokenSource := oauth2.StaticTokenSource(token)
+
+				grn := NewGrnClient()
+				grn.baseUrl = "https://" + c.String("grn-subdomain") + ".cybozu.com/g"
+				grn.hc = oauth2.NewClient(ctx, tokenSource)
 				gcal, err := NewGcalClient(!c.Bool("no-interactive"), c.String("gcal-token-path"), c.String("gcal-auth-loopback-port"))
 				if err != nil {
 					panic(err)
