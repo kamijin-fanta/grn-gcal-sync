@@ -163,7 +163,6 @@ func (o *Oauth2LocalAuthenticator) Start(
 		}
 
 		w.Write([]byte("ok"))
-		log.Printf("token: %s / %s", _token.RefreshToken, _token.AccessToken)
 		token = _token
 
 		close(cancel)

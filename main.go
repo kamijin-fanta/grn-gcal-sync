@@ -148,7 +148,7 @@ func main() {
 					token = resToken
 				}
 
-				tokenSource := oauth2.StaticTokenSource(token)
+				tokenSource := oauth2.ReuseTokenSource(token, garoonOauth2Config.TokenSource(ctx, token))
 
 				grn := NewGrnClient()
 				grn.baseUrl = "https://" + c.String("grn-subdomain") + ".cybozu.com/g"
@@ -244,14 +244,14 @@ func main() {
 						}
 					} else {
 						// update events
-						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence", "Start.TimeZone", "End.TimeZone"))
+						diff := cmp.Diff(exceptEvent, foundGcalEvent, cmpopts.IgnoreFields(*exceptEvent, "Created", "Creator", "Etag", "ICalUID", "Id", "HtmlLink", "Status", "Updated", "Reminders", "Organizer", "Kind", "Sequence", "Start.TimeZone", "End.TimeZone", "EventType"))
 						if diff != "" {
 							fmt.Printf("Update event %s\n%s\n\n", srcEvent.Subject, diff)
 							maxRetries := 5
 							retries := 0
 							var lasterr error
 							for {
-								_, lasterr := gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
+								_, lasterr = gcal.service.Events.Update(calId, foundGcalEvent.Id, exceptEvent).Do()
 								if lasterr != nil {
 									if retries >= maxRetries {
 										break
